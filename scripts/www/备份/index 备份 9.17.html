@@ -1,0 +1,740 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BMI 体重记录</title>
+<style>
+  :root {
+    color-scheme: light;
+    --bg: #f5f7fa;
+    --card: #ffffff;
+    --text: #1f2329;
+    --muted: #6b7280;
+    --border: #e5e7eb;
+    --primary: #2563eb;
+    --green: #15803d;
+    --green-bg: #dcfce7;
+    --orange: #c2410c;
+    --orange-bg: #ffedd5;
+    --red: #dc2626;
+    --red-bg: #fee2e2;
+    --blue: #1d4ed8;
+    --blue-bg: #dbeafe;
+  }
+  [data-theme="dark"] {
+    color-scheme: dark;
+    --bg: #101418;
+    --card: #1a2026;
+    --text: #e5e7eb;
+    --muted: #9ca3af;
+    --border: #2b323b;
+    --primary: #3b82f6;
+    --green: #4ade80;
+    --green-bg: rgba(74, 222, 128, 0.15);
+    --orange: #fb923c;
+    --orange-bg: rgba(251, 146, 60, 0.15);
+    --red: #f87171;
+    --red-bg: rgba(248, 113, 113, 0.15);
+    --blue: #60a5fa;
+    --blue-bg: rgba(96, 165, 250, 0.15);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.5;
+    padding: 16px 14px 32px;
+  }
+  .app { max-width: 480px; margin: 0 auto; }
+  .hidden { display: none !important; }
+
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 14px;
+  }
+  h1 { font-size: 18px; }
+  .hactions { display: flex; align-items: center; gap: 8px; }
+  .seg {
+    display: inline-flex;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+  .seg button {
+    border: 0;
+    background: var(--card);
+    color: var(--muted);
+    padding: 6px 10px;
+    font-size: 13px;
+    cursor: pointer;
+  }
+  .seg button.active { background: var(--primary); color: #fff; }
+  .iconbtn {
+    border: 1px solid var(--border);
+    background: var(--card);
+    color: var(--text);
+    border-radius: 8px;
+    padding: 6px 10px;
+    font-size: 13px;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 12px;
+  }
+  .card h2 { font-size: 15px; margin-bottom: 12px; }
+
+  .field { margin-bottom: 12px; }
+  .field > label { display: block; font-size: 13px; color: var(--muted); margin-bottom: 6px; }
+  input[type="number"],
+  input[type="date"] {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--bg);
+    color: var(--text);
+    font-size: 16px;
+    appearance: textfield;
+    -moz-appearance: textfield;
+  }
+  input::-webkit-outer-spin-button,
+  input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+  input:focus { outline: none; border-color: var(--primary); }
+  .radio-row { display: flex; gap: 16px; }
+  .radio-row label { display: flex; align-items: center; gap: 6px; font-size: 14px; cursor: pointer; }
+
+  .primary {
+    width: 100%;
+    padding: 11px;
+    border: 0;
+    border-radius: 8px;
+    background: var(--primary);
+    color: #fff;
+    font-size: 15px;
+    cursor: pointer;
+    margin-top: 4px;
+  }
+  .secondary {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--card);
+    color: var(--text);
+    font-size: 14px;
+    cursor: pointer;
+    margin-top: 12px;
+  }
+  .msg { font-size: 13px; min-height: 1.3em; margin-top: 8px; color: var(--green); }
+  .msg.err { color: var(--red); }
+  .hint { font-size: 12px; color: var(--muted); margin-top: 10px; }
+  .date-label { font-size: 13px; color: var(--muted); margin-bottom: 10px; }
+  .placeholder { color: var(--muted); font-size: 13px; text-align: center; padding: 28px 0; }
+
+  .weight-row { display: flex; align-items: center; gap: 8px; }
+  .weight-row input { flex: 1; }
+  .unit-label { color: var(--muted); font-size: 14px; }
+
+  .stat-row {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    padding: 9px 0;
+    border-bottom: 1px dashed var(--border);
+  }
+  .stat-row:last-of-type { border-bottom: 0; }
+  .stat-label { color: var(--muted); font-size: 13px; flex: 0 0 3.5em; }
+  .stat-value { font-size: 26px; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .stat-value small { font-size: 13px; font-weight: 400; color: var(--muted); margin-left: 2px; }
+  .tag { margin-left: auto; font-size: 12px; padding: 2px 9px; border-radius: 999px; white-space: nowrap; }
+  .tag-thin { color: var(--blue); background: var(--blue-bg); }
+  .tag-normal { color: var(--green); background: var(--green-bg); }
+  .tag-over { color: var(--orange); background: var(--orange-bg); }
+  .tag-obese { color: var(--red); background: var(--red-bg); }
+  .fat-ref { font-size: 12px; color: var(--muted); margin-top: 2px; }
+  .healthy-info { font-size: 13px; color: var(--muted); margin-top: 10px; }
+
+  .chart-wrap svg { width: 100%; height: auto; display: block; }
+  .grid { stroke: var(--border); stroke-width: 1; }
+  .axis { fill: var(--muted); font-size: 10px; }
+  .line { stroke: var(--primary); stroke-width: 2; fill: none; stroke-linejoin: round; stroke-linecap: round; }
+  .dot { fill: var(--primary); }
+
+  .record-list { list-style: none; }
+  .record-list li {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 9px 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 13px;
+  }
+  .record-list li:last-child { border-bottom: 0; }
+  .record-list li.empty { justify-content: center; color: var(--muted); }
+  .r-date { color: var(--muted); font-size: 12px; flex: none; font-variant-numeric: tabular-nums; }
+  .r-data { flex: 1; font-variant-numeric: tabular-nums; }
+  .del {
+    border: 0;
+    background: none;
+    color: var(--muted);
+    font-size: 15px;
+    line-height: 1;
+    cursor: pointer;
+    padding: 4px 6px;
+  }
+  .del:hover { color: var(--red); }
+  .date-status { font-size: 12px; color: var(--muted); margin: -6px 0 10px; }
+  .btn-row { display: flex; gap: 8px; margin-top: 12px; }
+  .btn-row .secondary { margin-top: 0; flex: 1; }
+  .r-today { margin-left: 0; font-size: 11px; padding: 1px 7px; }
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <h1>BMI 体重记录</h1>
+    <div class="hactions">
+      <button type="button" class="iconbtn" id="profileBtn">设置</button>
+      <div class="seg" id="unitSeg">
+        <button type="button" data-u="kg">kg</button>
+        <button type="button" data-u="lb">lb</button>
+      </div>
+      <button type="button" class="iconbtn" id="themeBtn">深色</button>
+    </div>
+  </header>
+
+  <section id="setupSection" class="card hidden">
+    <h2 id="setupTitle">首次设置</h2>
+    <div class="field">
+      <label>性别</label>
+      <div class="radio-row">
+        <label><input type="radio" name="gender" value="male" checked>男</label>
+        <label><input type="radio" name="gender" value="female">女</label>
+      </div>
+    </div>
+    <div class="field">
+      <label for="ageInput">年龄（岁）</label>
+      <input id="ageInput" type="number" inputmode="numeric" min="1" max="120" placeholder="例如：28">
+    </div>
+    <div class="field">
+      <label for="heightInput">身高（厘米）</label>
+      <input id="heightInput" type="number" inputmode="decimal" min="50" max="250" step="0.1" placeholder="例如：170">
+    </div>
+    <button type="button" class="primary" id="setupBtn">保存设置</button>
+    <button type="button" class="secondary hidden" id="cancelSetupBtn">取消</button>
+    <p class="msg" id="setupMsg"></p>
+    <p class="hint" id="setupHint">设置信息仅保存在本设备的浏览器中，之后不再询问。</p>
+  </section>
+
+  <main id="mainSection" class="hidden">
+    <section class="card">
+      <h2>今日记录</h2>
+      <p class="date-label" id="todayLabel"></p>
+      <div class="field">
+        <label for="dateInput">记录日期</label>
+        <input id="dateInput" type="date">
+      </div>
+      <p class="date-status" id="dateStatus"></p>
+      <div class="weight-row">
+        <input id="weightInput" type="number" inputmode="decimal" step="0.1" min="0" placeholder="体重">
+        <span class="unit-label" id="unitLabel">kg</span>
+      </div>
+      <button type="button" class="primary" id="recordBtn">记录</button>
+      <p class="msg" id="recordMsg"></p>
+    </section>
+
+    <section class="card">
+      <h2>当前状态</h2>
+      <div class="stat-row">
+        <span class="stat-label">BMI</span>
+        <span class="stat-value" id="bmiValue">--</span>
+        <span class="tag" id="bmiTag">暂无</span>
+      </div>
+      <div class="stat-row">
+        <span class="stat-label">体脂率</span>
+        <span class="stat-value" id="fatValue">--</span>
+        <span class="tag" id="fatTag">暂无</span>
+      </div>
+      <p class="fat-ref" id="fatRef"></p>
+      <p class="healthy-info" id="healthyInfo"></p>
+    </section>
+
+    <section class="card">
+      <h2>近 30 天体重趋势</h2>
+      <div id="chartBox"></div>
+    </section>
+
+    <section class="card">
+      <h2>记录列表</h2>
+      <ul class="record-list" id="recordList"></ul>
+      <div class="btn-row">
+        <button type="button" class="secondary" id="exportBtn">导出 CSV</button>
+        <button type="button" class="secondary" id="importBtn">导入 CSV</button>
+      </div>
+      <input type="file" id="csvFileInput" accept=".csv,text/csv" class="hidden">
+      <button type="button" class="secondary hidden" id="undoImportBtn">撤销上次导入</button>
+    </section>
+  </main>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  var KG_PER_LB = 0.45359237;
+  var KEY = {
+    profile: 'bmi_profile',   // {gender:'male'|'female', age:Number, height:Number(cm)}
+    records: 'bmi_records',   // [{date:'YYYY-MM-DD', weight:kg, bmi:Number, bodyFat:Number}]
+    theme: 'bmi_theme',       // 'light' | 'dark'
+    unit: 'bmi_unit',         // 'kg' | 'lb'
+    backup: 'bmi_records_backup' // 导入前的 records 备份，用于撤销
+  };
+
+  function $(id) { return document.getElementById(id); }
+  function load(key, fallback) {
+    try {
+      var v = JSON.parse(localStorage.getItem(key));
+      return v === null || v === undefined ? fallback : v;
+    } catch (e) { return fallback; }
+  }
+  function save(key, value) { localStorage.setItem(key, JSON.stringify(value)); }
+  function dateStr(d) {
+    return d.getFullYear() + '-' +
+      String(d.getMonth() + 1).padStart(2, '0') + '-' +
+      String(d.getDate()).padStart(2, '0');
+  }
+  function todayStr() { return dateStr(new Date()); }
+  function selectedDate() {
+    var v = $('dateInput').value;
+    return v && v <= todayStr() ? v : todayStr();
+  }
+  function toDisp(kg) { return unit === 'lb' ? kg / KG_PER_LB : kg; }
+  function fromDisp(v) { return unit === 'lb' ? v * KG_PER_LB : v; }
+  function f1(n) { return (Math.round(n * 10) / 10).toFixed(1); }
+
+  var profile = load(KEY.profile, null);
+  var records = load(KEY.records, []);
+  var unit = load(KEY.unit, 'kg');
+  var theme = load(KEY.theme,
+    window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+  records.sort(function (a, b) { return a.date.localeCompare(b.date); });
+
+  var msgTimer = null;
+  function setMsg(elId, text, isErr) {
+    var el = $(elId);
+    el.textContent = text || '';
+    el.classList.toggle('err', !!isErr);
+    if (elId === 'recordMsg') {
+      clearTimeout(msgTimer);
+      if (text) msgTimer = setTimeout(function () { el.textContent = ''; }, 3000);
+    }
+  }
+
+  function bmiOf(weightKg) {
+    var h = profile.height / 100;
+    return weightKg / (h * h);
+  }
+  function fatOf(bmi) {
+    var base = 1.2 * bmi + 0.23 * profile.age;
+    return profile.gender === 'male' ? base - 16.2 : base - 5.4;
+  }
+  function bmiInfo(bmi) {
+    if (bmi < 18.5) return { label: '偏瘦', cls: 'tag-thin' };
+    if (bmi < 24) return { label: '正常', cls: 'tag-normal' };
+    if (bmi < 28) return { label: '偏胖', cls: 'tag-over' };
+    return { label: '肥胖', cls: 'tag-obese' };
+  }
+  function fatInfo(fat) {
+    if (profile.gender === 'male') {
+      if (fat < 10) return { label: '偏低', cls: 'tag-thin' };
+      if (fat < 20) return { label: '健康', cls: 'tag-normal' };
+      if (fat < 25) return { label: '偏高', cls: 'tag-over' };
+      return { label: '肥胖', cls: 'tag-obese' };
+    }
+    if (fat < 18) return { label: '偏低', cls: 'tag-thin' };
+    if (fat < 28) return { label: '健康', cls: 'tag-normal' };
+    if (fat < 33) return { label: '偏高', cls: 'tag-over' };
+    return { label: '肥胖', cls: 'tag-obese' };
+  }
+
+  function applyTheme() {
+    document.documentElement.setAttribute('data-theme', theme);
+    $('themeBtn').textContent = theme === 'dark' ? '浅色' : '深色';
+  }
+
+  function renderChart() {
+    var box = $('chartBox');
+    var start = new Date();
+    start.setDate(start.getDate() - 29);
+    var startStr = dateStr(start);
+    var recs = records.filter(function (r) { return r.date >= startStr; });
+
+    if (recs.length < 2) {
+      box.innerHTML = '<p class="placeholder">' +
+        (recs.length === 1
+          ? '只有 1 条记录，再坚持记录一天即可查看趋势'
+          : '暂无数据，记录体重后显示近 30 天趋势') +
+        '</p>';
+      return;
+    }
+
+    var vals = recs.map(function (r) { return toDisp(r.weight); });
+    var min = Math.min.apply(null, vals);
+    var max = Math.max.apply(null, vals);
+    if (max - min < 0.5) {
+      var mid = (max + min) / 2;
+      min = mid - 0.5;
+      max = mid + 0.5;
+    } else {
+      var pad = (max - min) * 0.15;
+      min -= pad;
+      max += pad;
+    }
+
+    var W = 340, H = 180, L = 46, R = 12, T = 16, B = 28;
+    var iw = W - L - R, ih = H - T - B;
+    function x(i) { return L + i * iw / (recs.length - 1); }
+    function y(v) { return T + (max - v) / (max - min) * ih; }
+
+    var pts = vals.map(function (v, i) {
+      return x(i).toFixed(1) + ',' + y(v).toFixed(1);
+    }).join(' ');
+
+    var grid = '';
+    [min, (min + max) / 2, max].forEach(function (v) {
+      var yy = y(v).toFixed(1);
+      grid += '<line x1="' + L + '" x2="' + (W - R) + '" y1="' + yy + '" y2="' + yy + '" class="grid"/>' +
+        '<text x="' + (L - 6) + '" y="' + (Number(yy) + 3) + '" class="axis" text-anchor="end">' +
+        v.toFixed(1) + '</text>';
+    });
+
+    var dots = vals.map(function (v, i) {
+      return '<circle cx="' + x(i).toFixed(1) + '" cy="' + y(v).toFixed(1) + '" r="2.5" class="dot"/>';
+    }).join('');
+
+    var short = function (s) { return s.slice(5).replace('-', '/'); };
+
+    box.innerHTML =
+      '<div class="chart-wrap"><svg viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="近30天体重趋势折线图">' +
+      grid +
+      '<polyline points="' + pts + '" class="line"/>' +
+      dots +
+      '<text x="' + L + '" y="' + (H - 8) + '" class="axis">' + short(recs[0].date) + '</text>' +
+      '<text x="' + (W - R) + '" y="' + (H - 8) + '" class="axis" text-anchor="end">' +
+      short(recs[recs.length - 1].date) + '</text>' +
+      '</svg><p class="hint">单位：' + unit + '</p></div>';
+  }
+
+  function renderAll() {
+    document.querySelectorAll('#unitSeg button').forEach(function (b) {
+      b.classList.toggle('active', b.dataset.u === unit);
+    });
+
+    if (!profile) {
+      $('setupSection').classList.remove('hidden');
+      $('mainSection').classList.add('hidden');
+      return;
+    }
+    $('setupSection').classList.add('hidden');
+    $('mainSection').classList.remove('hidden');
+
+    $('unitLabel').textContent = unit;
+    var selDate = selectedDate();
+    var isToday = selDate === todayStr();
+    var t = records.find(function (r) { return r.date === selDate; });
+    $('todayLabel').textContent = (isToday ? '今天：' : '日期：') + selDate +
+      (t ? (isToday ? '（今日已记录，再次保存将覆盖）' : '（该日已有记录，将覆盖）') : '');
+    $('weightInput').placeholder = '体重（' + unit + '）';
+    if (t && !$('weightInput').value) {
+      $('weightInput').value = Number(toDisp(t.weight).toFixed(2));
+    }
+    $('recordBtn').textContent = isToday
+      ? (t ? '更新今日记录' : '记录')
+      : (t ? '覆盖该日记录' : '补录该日体重');
+    var monthPrefix = todayStr().slice(0, 7);
+    var monthDays = records
+      .filter(function (r) { return r.date.slice(0, 7) === monthPrefix; })
+      .map(function (r) { return Number(r.date.slice(8)); })
+      .sort(function (a, b) { return a - b; });
+    $('dateStatus').textContent = monthDays.length
+      ? '本月已记录：' + monthDays.join('、') + ' 日'
+      : '本月暂无记录';
+    refreshUndoBtn();
+
+    var last = records.length ? records[records.length - 1] : null;
+    if (last) {
+      $('bmiValue').textContent = f1(last.bmi);
+      var bi = bmiInfo(last.bmi);
+      $('bmiTag').textContent = bi.label;
+      $('bmiTag').className = 'tag ' + bi.cls;
+
+      $('fatValue').innerHTML = f1(last.bodyFat) + '<small>%</small>';
+      var fi = fatInfo(last.bodyFat);
+      $('fatTag').textContent = fi.label;
+      $('fatTag').className = 'tag ' + fi.cls;
+      $('fatRef').textContent = '健康参考范围：' +
+        (profile.gender === 'male' ? '10% – 20%（男）' : '18% – 28%（女）');
+
+      var h = profile.height / 100;
+      var minKg = 18.5 * h * h, maxKg = 24 * h * h;
+      var info = '健康体重范围：' + f1(toDisp(minKg)) + ' – ' + f1(toDisp(maxKg)) + ' ' + unit;
+      if (last.weight < minKg) {
+        info += '；还需增重 ' + f1(toDisp(minKg - last.weight)) + ' ' + unit;
+      } else if (last.weight > maxKg) {
+        info += '；还需减重 ' + f1(toDisp(last.weight - maxKg)) + ' ' + unit;
+      } else {
+        info += '；已处于健康体重范围内';
+      }
+      $('healthyInfo').textContent = info;
+    } else {
+      $('bmiValue').textContent = '--';
+      $('bmiTag').textContent = '暂无';
+      $('bmiTag').className = 'tag';
+      $('fatValue').textContent = '--';
+      $('fatTag').textContent = '暂无';
+      $('fatTag').className = 'tag';
+      $('fatRef').textContent = '健康参考范围：' +
+        (profile.gender === 'male' ? '10% – 20%（男）' : '18% – 28%（女）');
+      $('healthyInfo').textContent = '记录体重后显示健康体重差距';
+    }
+
+    var list = $('recordList');
+    if (!records.length) {
+      list.innerHTML = '<li class="empty">暂无记录</li>';
+    } else {
+      var today = todayStr();
+      var desc = records.slice().sort(function (a, b) { return b.date.localeCompare(a.date); });
+      list.innerHTML = desc.map(function (r) {
+        return '<li><span class="r-date">' + r.date + '</span>' +
+          (r.date === today ? '<span class="tag tag-normal r-today">今日</span>' : '') +
+          '<span class="r-data">体重 ' + f1(toDisp(r.weight)) + ' ' + unit +
+          ' · BMI ' + f1(r.bmi) + ' · 体脂率 ' + f1(r.bodyFat) + '%</span>' +
+          '<button type="button" class="del" data-date="' + r.date + '" aria-label="删除 ' + r.date + ' 的记录">&times;</button></li>';
+      }).join('');
+    }
+
+    renderChart();
+  }
+
+  $('setupBtn').addEventListener('click', function () {
+    var gender = document.querySelector('input[name="gender"]:checked').value;
+    var age = parseInt($('ageInput').value, 10);
+    var height = parseFloat($('heightInput').value);
+    if (!(age >= 1 && age <= 120)) { setMsg('setupMsg', '请输入有效年龄（1-120 岁）', true); return; }
+    if (!(height >= 50 && height <= 250)) { setMsg('setupMsg', '请输入有效身高（50-250 厘米）', true); return; }
+    profile = { gender: gender, age: age, height: Math.round(height * 10) / 10 };
+    save(KEY.profile, profile);
+    // 个人设置（身高/年龄/性别）变更后，按新设置重算全部历史记录的 BMI 和体脂率
+    if (records.length) {
+      records.forEach(function (r) {
+        var b = bmiOf(r.weight);
+        r.bmi = Math.round(b * 100) / 100;
+        r.bodyFat = Math.round(fatOf(b) * 100) / 100;
+      });
+      save(KEY.records, records);
+    }
+    exitEdit();
+    renderAll();
+  });
+
+  function exitEdit() {
+    $('setupTitle').textContent = '首次设置';
+    $('setupBtn').textContent = '保存设置';
+    $('cancelSetupBtn').classList.add('hidden');
+    $('setupHint').classList.remove('hidden');
+    setMsg('setupMsg', '');
+  }
+
+  $('cancelSetupBtn').addEventListener('click', exitEdit);
+
+  $('profileBtn').addEventListener('click', function () {
+    if (!profile) return;
+    $('setupTitle').textContent = '修改个人设置';
+    $('setupBtn').textContent = '保存修改';
+    $('cancelSetupBtn').classList.remove('hidden');
+    $('setupHint').classList.add('hidden');
+    document.querySelector('input[name="gender"][value="' + profile.gender + '"]').checked = true;
+    $('ageInput').value = profile.age;
+    $('heightInput').value = profile.height;
+    setMsg('setupMsg', '');
+    $('setupSection').classList.remove('hidden');
+    $('mainSection').classList.add('hidden');
+    window.scrollTo(0, 0);
+  });
+
+  $('dateInput').addEventListener('change', function () {
+    if ($('dateInput').value > todayStr()) {
+      setMsg('recordMsg', '不能选择未来的日期', true);
+      $('dateInput').value = todayStr();
+    }
+    if (!$('dateInput').value) { $('dateInput').value = todayStr(); }
+    // 切换日期时同步预填该日已有记录的体重，无记录则清空
+    var rec = records.find(function (r) { return r.date === selectedDate(); });
+    $('weightInput').value = rec ? Number(toDisp(rec.weight).toFixed(2)) : '';
+    renderAll();
+  });
+
+  $('recordBtn').addEventListener('click', function () {
+    if (!profile) return;
+    var wDisp = parseFloat($('weightInput').value);
+    if (!isFinite(wDisp) || wDisp <= 0) { setMsg('recordMsg', '请输入有效的体重', true); return; }
+    var kg = fromDisp(wDisp);
+    if (kg < 1 || kg > 500) { setMsg('recordMsg', '体重数值超出合理范围', true); return; }
+
+    var bmi = bmiOf(kg);
+    var fat = fatOf(bmi);
+    var date = selectedDate();
+    var idx = records.findIndex(function (r) { return r.date === date; });
+    var overwritten = idx >= 0;
+    var rec = {
+      date: date,
+      weight: Math.round(kg * 1000) / 1000,
+      bmi: Math.round(bmi * 100) / 100,
+      bodyFat: Math.round(fat * 100) / 100
+    };
+    if (overwritten) {
+      records[idx] = rec;
+    } else {
+      records.push(rec);
+      records.sort(function (a, b) { return a.date.localeCompare(b.date); });
+    }
+    save(KEY.records, records);
+    setMsg('recordMsg', overwritten
+      ? (date === todayStr() ? '已覆盖今日记录' : '已覆盖该日记录')
+      : (date === todayStr() ? '已记录' : '已补录 ' + date + ' 的记录'));
+    renderAll();
+  });
+
+  $('recordList').addEventListener('click', function (e) {
+    var btn = e.target.closest('.del');
+    if (!btn) return;
+    var d = btn.dataset.date;
+    records = records.filter(function (r) { return r.date !== d; });
+    save(KEY.records, records);
+    renderAll();
+  });
+
+  $('themeBtn').addEventListener('click', function () {
+    theme = theme === 'dark' ? 'light' : 'dark';
+    save(KEY.theme, theme);
+    applyTheme();
+  });
+
+  $('unitSeg').addEventListener('click', function (e) {
+    var b = e.target.closest('button');
+    if (!b || b.dataset.u === unit) return;
+    var cur = parseFloat($('weightInput').value);
+    if (isFinite(cur)) {
+      var next = unit === 'kg' ? cur / KG_PER_LB : cur * KG_PER_LB;
+      $('weightInput').value = Number(next.toFixed(2));
+    }
+    unit = b.dataset.u;
+    save(KEY.unit, unit);
+    renderAll();
+  });
+
+  $('exportBtn').addEventListener('click', function () {
+    if (!records.length) { alert('暂无记录可导出'); return; }
+    var lines = ['日期,体重,BMI,体脂率'];
+    records.slice().sort(function (a, b) { return a.date.localeCompare(b.date); })
+      .forEach(function (r) {
+        lines.push([r.date, r.weight, r.bmi, r.bodyFat].join(','));
+      });
+    var blob = new Blob(['\uFEFF' + lines.join('\n')], { type: 'text/csv;charset=utf-8' });
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = '体重记录_' + todayStr().replace(/-/g, '') + '.csv';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(function () { URL.revokeObjectURL(a.href); }, 1000);
+  });
+
+  $('importBtn').addEventListener('click', function () {
+    $('csvFileInput').click();
+  });
+
+  $('csvFileInput').addEventListener('change', function () {
+    var file = this.files[0];
+    this.value = ''; // 清空以便可重复导入同一文件
+    if (!file) return;
+    var reader = new FileReader();
+    reader.onload = function () {
+      var text = String(reader.result).replace(/^\uFEFF/, '');
+      var lines = text.split(/\r?\n/).filter(function (l) { return l.trim(); });
+      var recs = [], skipped = 0;
+      lines.forEach(function (line, idx) {
+        var cols = line.split(',');
+        var date = (cols[0] || '').trim();
+        var weightKg = parseFloat(cols[1]);
+        if (idx === 0 && !/^\d{4}-\d{2}-\d{2}$/.test(date)) return; // 表头行
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(date) ||
+            !isFinite(weightKg) || weightKg < 1 || weightKg > 500) {
+          skipped++;
+          return;
+        }
+        // BMI 和体脂率按当前个人设置重算，不采用文件中的值
+        var b = bmiOf(weightKg);
+        recs.push({
+          date: date,
+          weight: Math.round(weightKg * 1000) / 1000,
+          bmi: Math.round(b * 100) / 100,
+          bodyFat: Math.round(fatOf(b) * 100) / 100
+        });
+      });
+      if (!recs.length) { alert('导入失败：文件中没有有效的记录行'); return; }
+      if (!confirm('导入将按日期合并数据，CSV 中存在的日期会覆盖本地记录。是否继续？')) return;
+      // 二次确认：告知将被覆盖的条数
+      var overlap = recs.filter(function (rec) {
+        return records.some(function (r) { return r.date === rec.date; });
+      }).length;
+      if (overlap > 0 && !confirm('将有 ' + overlap + ' 条记录被覆盖。是否继续？')) return;
+      // 导入前完整备份当前记录，用于一键回退
+      save(KEY.backup, records);
+      recs.forEach(function (rec) {
+        var i = records.findIndex(function (r) { return r.date === rec.date; });
+        if (i >= 0) { records[i] = rec; } else { records.push(rec); }
+      });
+      records.sort(function (a, b) { return a.date.localeCompare(b.date); });
+      save(KEY.records, records);
+      renderAll();
+      alert('导入完成：共 ' + recs.length + ' 条，覆盖 ' + overlap + ' 条' +
+        (skipped ? '，跳过无效行 ' + skipped + ' 条' : ''));
+    };
+    reader.onerror = function () { alert('导入失败：文件读取错误'); };
+    reader.readAsText(file, 'utf-8');
+  });
+
+  function refreshUndoBtn() {
+    $('undoImportBtn').classList.toggle('hidden', !localStorage.getItem(KEY.backup));
+  }
+
+  $('undoImportBtn').addEventListener('click', function () {
+    var backup = load(KEY.backup, null);
+    if (!backup || !backup.length) return;
+    records = backup;
+    save(KEY.records, records);
+    localStorage.removeItem(KEY.backup);
+    renderAll();
+  });
+
+  $('dateInput').value = todayStr();
+  $('dateInput').max = todayStr();
+  applyTheme();
+  renderAll();
+})();
+</script>
+</body>
+</html>
